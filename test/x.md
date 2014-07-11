@@ -1,3 +1,9 @@
+This is an example diagram
+
+in a markdown *context*
+
+<script metapost>
+
 beginfig(1);
 secondarydef v projectedalong w =
 if pair(v) and pair(w):
@@ -28,3 +34,9 @@ label.bot(btex $u_3$ etex, u3);
 label.lft(btex $u_4$ etex, u4);
 endfig;
 end;
+
+</script>
+
+This is an example diagram
+
+in a markdown *context*
