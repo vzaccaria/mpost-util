@@ -62,6 +62,8 @@ just = (text) ->
 #   return -> 
 #     result: ("btex" + arg + "etex"), name: []
 
+unit = "mm"
+
 parse = (r, args) ->
     o        = get-options(args)
     nm       = get-name(args)
@@ -123,7 +125,7 @@ box    = ->
         res  = res + "(" + (get-results(args).map (.result)) * "" + ");"
         res = res + line "#name.dx = #{o.dx};" if o?.dx?
         res = res + line "#name.dy = #{o.dy};" if o?.dy?
-        return { node-def: line(res), nodes: [name], root: "#{name}.c" }
+        return { node-def: line(res), nodes: [name], root: "#{name}.c", finalize: line "drawboxed(#name);" }
 
 symtable = {}
 
@@ -132,15 +134,15 @@ circle    = ->
     return -> 
         name  = get-name args
         o     = get-options args
-        o.dx ?= "5bp"
-        o.dy ?= "5bp"
+        # o.dx ?= "3"
+        # o.dy ?= "3"
         res   = "circleit"
         res   = res + ".#name" if name?
         res   = res + "(" + (get-results(args).map (.result)) * "" + ");"
-        res = res + line "#name.e - #name.c = (#{o.dx}, 0);" if o?.dx?
-        res = res + line "#name.n - #name.c = (0, #{o.dy});" if o?.dy?
+        res = res + line "#name.e - #name.c = (#{o.dx}#unit, 0);" if o?.dx?
+        res = res + line "#name.n - #name.c = (0, #{o.dy}#unit);" if o?.dy?
         # res = res + line "#name.c = (#{o.cx}, #{o.cy})" if o.cx? and o.cy?
-        return { node-def: line(res), nodes: [name], root: "#{name}.c" }
+        return { node-def: line(res), nodes: [name], root: "#{name}.c", finalize: line "drawboxed(#name);" }
 
 
 
@@ -149,12 +151,11 @@ join = ->
     args = &[0 to ]
     return -> 
         { opts, name, nodes, node-def, roots } = parse1(args)
-        res = line "boxjoin(a.e=b.w);" if not opts?.vertical?
-        res = line "boxjoin(a.s=b.n);" if opts?.vertical?
+        res = line "boxjoin(a.se=b.sw; a.ne=b.nw);" if not opts?.vertical?
+        res = line "boxjoin(a.sw=b.nw; a.se=b.ne);" if opts?.vertical?
         res = res + node-def
-        res = res + line "pair #{name}.c; #name.c = #{roots[0]};"
-        finalize = line "drawboxed(#{nodes * ','});"
-        return { node-def: line(res), nodes: nodes, root: "#{name}.c", finalize: finalize }
+        res = res + line "boxjoin();"
+        return { node-def: line(res), root: "#{roots[0]}", finalize: line "drawboxed(#{nodes * ','});" }
 
 draw-arrow = ->
     args = &[0 to ]
@@ -171,8 +172,8 @@ array = ->
     return -> 
         { opts, name, nodes, node-def, roots, finalize } = parse1(args)
         opts.space ?= "1"
-        opts.dist ?= "#{opts.space}*(0,1bp)" if opts.vertical?
-        opts.dist ?= "#{opts.space}*(1bp,0)" if not opts.vertical
+        opts.dist ?= "#{opts.space}*(0,1#unit)" if opts.vertical?
+        opts.dist ?= "#{opts.space}*(-1#unit,0)" if not opts.vertical
         res = ""
         res = res + node-def
         res = res + line "pair #{name}.c;"
@@ -183,6 +184,11 @@ array = ->
         return { node-def: line(res), nodes: nodes, root: "#{name}.c", finalize: finalize}
 
 
+col = ->
+    args = &[0 to]
+    array.apply(array, args ++ [{ +vertical }])
+
+row = array
 
 # displace = (opts)
 
@@ -224,36 +230,31 @@ line = -> "\n#it"
    #      ]
    # draw "..", up "A", down "B"
 
-d = diagram seq [
-                  array([
+steps = 
+  * row([
 
-                    join([
-                        box 'h' , (tex "$x^2$")
-                        box 'i' , (tex "x")
-                        box 'j' , (tex "x")
-                        box 'k' , (tex "y")
-                        box 'l' , (tex "y")
-                        box 'm' , (tex "y")
-                        ], 'n', { +vertical })
+          join([
+                box 'q'    , (tex "y")
+                box 'r'    , (tex "y")
+                ], { +vertical })
 
-                    join([
-                        box 'ha' , (tex "$x^2$")
-                        box 'ia' , (tex "x")
-                        box 'ja' , (tex "x")
-                        box 'ka' , (tex "y")
-                        box 'la' , (tex "y")
-                        box 'ma' , (tex "y")
-                        ], 'na', { +vertical })
-
-                    join [
-                      circle 'aa', (tex "u")
-                      circle 'bb', (tex "u")
-                      ], 'o', 
-                      
-                    ], 'p', {space: "40", root-at: 'origin'})
-
-                  draw-arrow (just 'aa'), (just 'k')
+          box 'h'    , (tex "$x^2$") 
+          
+          join [
+                  box 'i' , (tex "x+3+1")
+                  box 'j' , (tex "x+5+1")
                   ]
+
+          box 'k'    , (tex "3+1")   
+          box 'l'    , (tex "y")     
+          box 'm'    , (tex "y")     
+          ]          , 'p'           , {space: 40, root-at: 'origin' })
+
+  * draw-arrow (just 'h'), (just 'j')
+
+d = diagram seq steps
+                
+                  
 
 
 console.log d

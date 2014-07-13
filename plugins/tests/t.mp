@@ -5,41 +5,34 @@ beginfig(1);
 
 
 
-boxjoin(a.s=b.n);
+boxjoin(a.sw=b.nw; a.se=b.ne);
+boxit.q(btex y etex);
+boxit.r(btex y etex);
+boxjoin();
 boxit.h(btex $x^2$ etex);
-boxit.i(btex x etex);
-boxit.j(btex x etex);
-boxit.k(btex y etex);
+
+boxjoin(a.se=b.sw; a.ne=b.nw);
+boxit.i(btex x+3+1 etex);
+boxit.j(btex x+5+1 etex);
+boxjoin();
+boxit.k(btex 3+1 etex);
 boxit.l(btex y etex);
 boxit.m(btex y etex);
-pair n.c; n.c = h.c;
-
-boxjoin(a.s=b.n);
-boxit.ha(btex $x^2$ etex);
-boxit.ia(btex x etex);
-boxit.ja(btex x etex);
-boxit.ka(btex y etex);
-boxit.la(btex y etex);
-boxit.ma(btex y etex);
-pair na.c; na.c = ha.c;
-
-boxjoin(a.e=b.w);
-circleit.aa(btex u etex);
-aa.e - aa.c = (5bp, 0);
-aa.n - aa.c = (0, 5bp);
-circleit.bb(btex u etex);
-bb.e - bb.c = (5bp, 0);
-bb.n - bb.c = (0, 5bp);
-pair o.c; o.c = aa.c;
 pair p.c;
 p.c = origin;
-p.c - 0 * 40*(1bp,0) = n.c;
-p.c - 1 * 40*(1bp,0) = na.c;
-p.c - 2 * 40*(1bp,0) = o.c;
+p.c - 0 * 40*(-1mm,0) = q.c;
+p.c - 1 * 40*(-1mm,0) = h.c;
+p.c - 2 * 40*(-1mm,0) = i.c;
+p.c - 3 * 40*(-1mm,0) = k.c;
+p.c - 4 * 40*(-1mm,0) = l.c;
+p.c - 5 * 40*(-1mm,0) = m.c;
 
-drawboxed(h,i,j,k,l,m);
-drawboxed(ha,ia,ja,ka,la,ma);
-drawboxed(aa,bb);
-drawarrow aa.c{down} .. {curl 0}k.c;
+drawboxed(q,r);
+drawboxed(h);
+drawboxed(i,j);
+drawboxed(k);
+drawboxed(l);
+drawboxed(m);
+drawarrow h.c{down} .. {curl 0}j.c;
 endfig;
 end;
