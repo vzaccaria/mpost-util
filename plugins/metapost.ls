@@ -1,3 +1,5 @@
+#!/usr/bin/env lsc
+# options are accessed as argv.option
 
 _               = require('underscore')
 _.str           = require('underscore.string');
@@ -60,9 +62,29 @@ just = (text) ->
 #   return -> 
 #     result: ("btex" + arg + "etex"), name: []
 
+parse = (r, args) ->
+    o        = get-options(args)
+    nm       = get-name(args)
+    nodes    = _.reduce r, ((a,c) -> a = a ++ c.nodes), []
+    finalize = _.reduce r, ((a,c) -> a = a ++ c.finalize), []
+    roots    = (r.map (.root))
+    node-def = (r.map (.node-def)) * ""
+
+    nm      ?= "undefined"
+    return { opts: o, name: nm, nodes: nodes, node-def: node-def, roots: roots, finalize: finalize }
+
+parse1 = (args) ->
+    r = get-results(get-fst-array(args))
+    parse(r, args)
+
+
+parse0 = (args) ->
+    r        = get-results(args)
+    parse(r, args)
+
+
 seq = (args) ->
-    ->
-        { result: ((get-results(args).map (.result)) * ""), name: [] }
+    -> _.pick parse0(args), 'nodeDef', 'nodes', 'finalize'
 
 
 get-name = (args) ->
@@ -99,36 +121,40 @@ box    = ->
         res  = "boxit"
         res  = res + ".#name" if name?
         res  = res + "(" + (get-results(args).map (.result)) * "" + ");"
-        res = res + line "#name.dx = #{o.dx};" if o.dx?
-        res = res + line "#name.dy = #{o.dy};" if o.dy?
-        return { result: line(res), name: name }
+        res = res + line "#name.dx = #{o.dx};" if o?.dx?
+        res = res + line "#name.dy = #{o.dy};" if o?.dy?
+        return { node-def: line(res), nodes: [name], root: "#{name}.c" }
+
+symtable = {}
 
 circle    = ->
     args = &[0 to ] 
     return -> 
         name  = get-name args
         o     = get-options args
+        o.dx ?= "5bp"
+        o.dy ?= "5bp"
         res   = "circleit"
         res   = res + ".#name" if name?
         res   = res + "(" + (get-results(args).map (.result)) * "" + ");"
-        res = res + line "#name.e - #name.c = (5bp, 0);"
-        res = res + line "#name.n - #name.c = (0, 5bp);"
+        res = res + line "#name.e - #name.c = (#{o.dx}, 0);" if o?.dx?
+        res = res + line "#name.n - #name.c = (0, #{o.dy});" if o?.dy?
         # res = res + line "#name.c = (#{o.cx}, #{o.cy})" if o.cx? and o.cy?
-        return { result: line(res), name: name }
+        return { node-def: line(res), nodes: [name], root: "#{name}.c" }
+
+
+
 
 join = ->
     args = &[0 to ]
     return -> 
-        r       = get-results(get-fst-array(args))
-        o       = get-options(args)
-        names   = r.map (.name)
-        results = (r.map (.result)) * ""
-        res     = ""
-        res     = res + line "boxjoin(a.e=b.w);" if not o.vertical?
-        res     = res + line "boxjoin(a.s=b.n);" if o.vertical?        
-        res     = res + results if results?
-        res     = res + line("drawboxed(" + (names * ',') + ");") if names?
-        return { result: line(res), name: [] }
+        { opts, name, nodes, node-def, roots } = parse1(args)
+        res = line "boxjoin(a.e=b.w);" if not opts?.vertical?
+        res = line "boxjoin(a.s=b.n);" if opts?.vertical?
+        res = res + node-def
+        res = res + line "pair #{name}.c; #name.c = #{roots[0]};"
+        finalize = line "drawboxed(#{nodes * ','});"
+        return { node-def: line(res), nodes: nodes, root: "#{name}.c", finalize: finalize }
 
 draw-arrow = ->
     args = &[0 to ]
@@ -136,16 +162,39 @@ draw-arrow = ->
         r = get-results(args)
         o = get-options(args)
         res = ""
-        res = res + line "drawarrow #{r[0].result}.c{down} .. .{curl0}#{r[1].result}.c;" if o.south?
-        res = res + line "drawarrow #{r[0].result}.c{down} .. .{curl0}#{r[1].result}.c;" if not o.south?
-        return { result: line(res), name: [] }
+        res = res + line "drawarrow #{r[0].result}.c{down} .. {curl 0}#{r[1].result}.c;" if o.south?
+        res = res + line "drawarrow #{r[0].result}.c{down} .. {curl 0}#{r[1].result}.c;" if not o.south?
+        return { nodes: [], finalize: res }
 
+array = ->
+    args = &[0 to ]
+    return -> 
+        { opts, name, nodes, node-def, roots, finalize } = parse1(args)
+        opts.space ?= "1"
+        opts.dist ?= "#{opts.space}*(0,1bp)" if opts.vertical?
+        opts.dist ?= "#{opts.space}*(1bp,0)" if not opts.vertical
+        res = ""
+        res = res + node-def
+        res = res + line "pair #{name}.c;"
+        if opts.root-at?
+          res = res + line "#{name}.c = #{opts.root-at};"
+        for i,v of roots
+          res = res + line "#{name}.c - #i * #{opts.dist} = #v;"
+        return { node-def: line(res), nodes: nodes, root: "#{name}.c", finalize: finalize}
+
+
+
+# displace = (opts)
 
 diagram = (codebody) ->
+  { node-def, nodes, finalize } = codebody()
   return """
   input boxes;
+  string defaultfont;
+  defaultfont="pplr8r";
   beginfig(1);
-  #{codebody().result}
+  #node-def
+  #{finalize * ''}
   endfig;
   end;"""
 
@@ -176,24 +225,36 @@ line = -> "\n#it"
    # draw "..", up "A", down "B"
 
 d = diagram seq [
+                  array([
 
-              join([
-                  box 'h' , (tex "$x^2$")
-                  box 'i' , (tex "x")
-                  box 'c' , (tex "x")
-                  box 'd' , (tex "y")
-                  box 'e' , (tex "y")
-                  box 'f' , (tex "y")
-                  ]       , { +vertical })
+                    join([
+                        box 'h' , (tex "$x^2$")
+                        box 'i' , (tex "x")
+                        box 'j' , (tex "x")
+                        box 'k' , (tex "y")
+                        box 'l' , (tex "y")
+                        box 'm' , (tex "y")
+                        ], 'n', { +vertical })
 
-              join [
-                circle 'aa', (tex "u")
-                circle 'bb', (tex "u")
-                ]
+                    join([
+                        box 'ha' , (tex "$x^2$")
+                        box 'ia' , (tex "x")
+                        box 'ja' , (tex "x")
+                        box 'ka' , (tex "y")
+                        box 'la' , (tex "y")
+                        box 'ma' , (tex "y")
+                        ], 'na', { +vertical })
 
-              draw-arrow (just 'h'), (just 'f')
+                    join [
+                      circle 'aa', (tex "u")
+                      circle 'bb', (tex "u")
+                      ], 'o', 
+                      
+                    ], 'p', {space: "40", root-at: 'origin'})
 
-              ]
+                  draw-arrow (just 'aa'), (just 'k')
+                  ]
+
 
 console.log d
 
