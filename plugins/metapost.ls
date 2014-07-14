@@ -145,6 +145,20 @@ circle    = ->
         return { node-def: line(res), nodes: [name], root: "#{name}.c", finalize: line "drawboxed(#name);" }
 
 
+njoin = ->
+    block = it
+    jj = new joined-elements() 
+    block.apply(jj)
+    return -> 
+
+
+        { opts, name, nodes, node-def, roots } = parse1(args)
+        res = line "boxjoin(a.se=b.sw; a.ne=b.nw);" if not opts?.vertical?
+        res = line "boxjoin(a.sw=b.nw; a.se=b.ne);" if opts?.vertical?
+        res = res + node-def
+        res = res + line "boxjoin();"
+        return { node-def: line(res), root: "#{roots[0]}", finalize: line "drawboxed(#{nodes * ','});" }
+
 
 
 join = ->
