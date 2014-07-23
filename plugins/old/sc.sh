@@ -1,0 +1,1 @@
+./metapost.alt.ls > tests/t.mp && ../mp2pdf tests/t.mp 

@@ -2,9 +2,12 @@
 set -e
 
 usage="
-Usage: mpost2pdf <input>.mp
-
+Usage: mp-md2pdf <input>.mp [-s] [-d]
 converts an mpost file to a pdf file.
+
+-s    Outputs an svg file 
+-g    Outputs a png file
+-d    Dry run; show only steps that will be done
 "
 
 # Absolute path:
@@ -57,9 +60,13 @@ function directory_does_exist {
 
 bold=$(tput bold)
 reset=$(tput sgr0)
+
+verbose="no" 
 function print {
-	printf "${bold}$1${reset}. "
-  echo ""
+  if [[ $verbose == true ]] ; then
+	   printf "${bold}$1${reset}. "
+     echo ""
+  fi
 }
 
 function ask_for_key {
@@ -70,19 +77,40 @@ function ask_for_key {
 
 
 # dryrun
-dry_run=false
+dry_run="no"
+
 run() {
-  echo "$1"
-  if [[ $dry_run == false ]] ; then
+  if [[ $verbose == "yes" ]] ; then
+    echo "$1"
+  fi
+  if [[ $dry_run == "no" ]] ; then
     eval "$1"
   fi
 }
 
+svg="no"
+png="no"
+filename_provided="no"
+
 while (($# > 0)) ; do
   option="$1"
   shift
+        
+  orig_option=$option
 
-  svg="no"
+  case $option in
+          --*) ;;
+          -*) option=-$option ;;
+  esac
+
+# split the option to get its argument
+  case $option in
+  --*=*)
+          optarg=`echo $option | sed -e 's/^[^=]*=//'`
+          ;;
+  esac
+
+  
 
   case "$option" in
 
@@ -92,54 +120,32 @@ while (($# > 0)) ; do
       ;;
 
     -d|--dry-run)      
-      dry_run=true; 
+      dry_run="yes"; 
       ;;
 
-    -s|--svg)      
-      svg="yes"; 
+    -v|--verbose)      
+      verbose="yes"; 
       ;;
  
-    *.mp)
+    *.md)
       filename="$option";
+      filename_provided="yes"
       ;;
     *)
        echo "Unknown option $option"
   esac
 done
 
-bn=`get_base_name ${filename}`
-
-bntmp="${bn}-tex"
-tmp="${bn}-tex.mp"
-
-mpoutput="${bntmp}.1"
-tmpoutput="${bntmp}.log"
-mpx="${bntmp}.mpx"
-pdoutput="${bntmp}.pdf"
-sdoutput="${bntmp}.svg"
-
-run "cat $srcdir/src/prologue.mp ${filename} > ${bn}-tex.mp"
-print "Processing ${filename}"
-run "mpost ${bn}-tex.mp"
-
-print "Converting eps to pdf"
-run "epstopdf ${mpoutput}"
-
-print "Cleaning up"
-run "rm ${bn}-tex.mp"
-run "rm ${mpoutput}"
-run "rm ${tmpoutput}"
-run "rm ${mpx}"
-
-if [[ "$svg" == "yes" ]]; then
-    print "Converting eps to svg"
-    run "pdf2svg ${pdoutput} ${sdoutput}"
-    run "rm ${pdoutput}"
-    run "mv ${sdoutput} ${bn}.svg"
-    # Body
-    else
-      run "mv ${pdoutput} ${bn}.pdf"
+if [[ $filename_provided == "yes" ]]; then
+  bn=`get_base_name ${filename}`
+  run "$srcdir/mp-convert-to-md -p $filename"
+  run "md2pdf.sh $bn-0.md"
+  run "rm -rf ./figures"
+  run "rm $bn-0.md"
+else
+  echo "No filename specified"
 fi
+
 
 
 
