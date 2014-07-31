@@ -6,6 +6,12 @@
   "directories": {
     "test": "test"
   },
+  "preferGlobal": "true",
+  "bin": {
+    "mp-convert-to-md": "./bin/mp-convert-to-md",
+    "mp-md2pdf": "./bin/mp-md2pdf",
+    "mp-gen-pdf-figures": "./bin/mp-gen-pdf-figures"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,6 +27,16 @@
   "homepage": "https://github.com/vzaccaria/mpost-util",
   "dependencies": {
     "LiveScript": "^1.2.0",
-    "debug": "^1.0.3"
+    "debug": "^1.0.4",
+    "ansi-color": "^0.2.1",
+    "underscore": "^1.6.0",
+    "q": "^1.0.1",
+    "shelljs": "^0.3.0",
+    "ansi-color-table": "^1.0.0",
+    "underscore.string": "^2.3.3",
+    "moment": "^2.7.0",
+    "cli-table": "^0.3.0",
+    "shellwords": "^0.1.0",
+    "shelly": "0.0.3"
   }
 }

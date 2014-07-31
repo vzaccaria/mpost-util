@@ -1,0 +1,161 @@
+#!/usr/bin/env sh 
+set -e
+
+usage="
+Usage: mp-md2pdf <input>.mp [options]
+converts an mpost enhanced file to a pdf file.
+
+  -e,--example    Show an example markdown
+  -d,--dry-run    Dry run; show only steps that will be done
+  -v,--verbose    Show all the commands invoked.
+"
+
+# Absolute path:
+# 
+# Usage: abs=`get_abs_path ./deploy/static`
+#		 echo $abs
+# 
+function get_abs_path {
+   dir=$(cd `dirname $1` >/dev/null; pwd )
+   echo $dir
+}
+#
+
+# Get basename:
+function get_base_name {
+	n=$1
+	n=$(basename "$n")
+	echo "${n%.*}"
+}
+
+
+#if [ $? -eq 0 ]
+#then
+#    echo "it worked"
+#else
+#    echo "it failed"
+#fi
+
+# Source directory
+#
+realprg=`grealpath $0`
+bindir=`dirname $realprg`
+bindir=`cd $bindir; pwd`
+
+#
+# Temp directory:
+#
+# dstdir=`mktemp -d -t bashtmp`
+#
+# or current:
+#
+dstdir=`pwd`
+
+function directory_does_exist {
+	if [ ! -d "$1" ]; then
+		echo 'true'
+	else
+		echo 'false'
+	fi
+}
+
+bold=$(tput bold)
+reset=$(tput sgr0)
+
+verbose="no" 
+function print {
+  if [[ $verbose == true ]] ; then
+	   printf "${bold}$1${reset}. "
+     echo ""
+  fi
+}
+
+function ask_for_key {
+	printf "Press [enter] to continue"
+	read -s # suppress user input
+	echo 
+}
+
+
+# dryrun
+dry_run="no"
+
+run() {
+  if [[ $verbose == "yes" ]] ; then
+    echo "$1"
+  fi
+  if [[ $dry_run == "no" ]] ; then
+    eval "$1"
+  fi
+}
+
+svg="no"
+png="no"
+filename_provided="no"
+example="no"
+
+while (($# > 0)) ; do
+  option="$1"
+  shift
+        
+  orig_option=$option
+
+  case $option in
+          --*) ;;
+          -*) option=-$option ;;
+  esac
+
+# split the option to get its argument
+  case $option in
+  --*=*)
+          optarg=`echo $option | sed -e 's/^[^=]*=//'`
+          ;;
+  esac
+
+  
+
+  case "$option" in
+
+    --h|--help)
+      echo "$usage"
+      exit
+      ;;
+
+    --d|--dry-run)      
+      dry_run="yes"; 
+      ;;
+
+    --v|--verbose)      
+      verbose="yes"; 
+      ;;
+
+    --e|--example)      
+      example="yes"; 
+      ;;
+
+    *.md)
+      filename="$option";
+      filename_provided="yes"
+      ;;
+    *)
+       echo "Unknown option $option"
+  esac
+done
+
+if [[ $example == "yes" ]]; then
+    cat "$bindir/../test/example.md"
+  else
+    if [[ $filename_provided == "yes" ]]; then
+      bn=`get_base_name ${filename}`
+      run "$bindir/mp-convert-to-md -p $filename"
+      run "md2pdf.sh $bn-0.md"
+      run "rm -rf ./figures"
+      run "rm $bn-0.md"
+    else
+      echo "No filename specified"
+    fi
+fi
+
+
+
+

@@ -38,8 +38,9 @@ function get_base_name {
 
 # Source directory
 #
-srcdir=`dirname $0`
-srcdir=`cd $srcdir; pwd`
+realprg=`grealpath $0`
+bindir=`dirname $realprg`
+bindir=`cd $bindir; pwd`
 
 #
 # Temp directory:
@@ -128,7 +129,7 @@ while (($# > 0)) ; do
   esac
 done
 
-bn=`get_base_name ${filename}`
+bn=`get_base_name \"${filename}\"`
 
 bntmp="${bn}-tex"
 tmp="${bn}-tex.mp"
@@ -140,9 +141,9 @@ pdoutput="${bntmp}.pdf"
 sdoutput="${bntmp}.svg"
 gdoutput="${bntmp}-1.png"
 
-run "cat $srcdir/../scripts/prologue.mp ${filename} > ${bn}-tex.mp"
+run "cat $bindir/../scripts/prologue.mp \"${filename}\" > \"${bn}-tex.mp\""
 print "Processing ${filename}"
-run "mpost ${bn}-tex.mp"
+run "mpost \"${bn}-tex.mp\""
 
 print "Converting eps to pdf"
 run "epstopdf ${mpoutput}"

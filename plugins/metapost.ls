@@ -11,7 +11,6 @@ __q             = require('q')
 sh              = require('shelljs')
 os              = require('os')
 shelljs         = sh
-winston         = require('winston')
 debug           = require('debug')('metapost')
 Table           = require("cli-table")
 
@@ -260,6 +259,7 @@ diagram = ->
   debug JSON.stringify(jj.elements, 0, 4)
   return """
   input boxes;
+  input blockdraw;
   string defaultfont;
   defaultfont="pplr8r";
   beginfig(1);
@@ -271,31 +271,34 @@ diagram = ->
 
 line = -> "\n#it"
 
-test-diag-s = (s) ->
-  -> 
-    box-element.dx = s/2
-    box-element.dy = s/2 
-    circle-element.dx = s/2
-    circle-element.dy = s/2 
-    @column s, ->
-      @row s, ->
-        @empty ()
-        @box    (-> @text = tex \a) 
-        @circle (-> @text = tex \b) |> @in  'left', 'to state'
-      @row s, ->
-        @box    (-> @text = tex \c)
-        @box    (-> @text = tex \d) |> @out  'right', 'to state'
-        @box    (-> @text = tex \e) 
+# test-diag-s = (s) ->
+#   -> 
+#     box-element.dx = s/2
+#     box-element.dy = s/2 
+#     circle-element.dx = s/2
+#     circle-element.dy = s/2 
+#     @column s, ->
+#       @row s, ->
+#         @empty ()
+#         @box    (-> @text = tex \a) 
+#         @circle (-> @text = tex \b) |> @in  'left', 'to state'
+        
+#       @row s, ->
+#         @box    (-> @text = tex \c)
+#         @box    (-> @text = tex \d) |> @out  'right', 'to state'
+#         @box    (-> @text = tex \e) 
 
-test-diag = diagram test-diag-s(100)
+# test-diag = diagram test-diag-s(100)
 
-    
+ 
+
+pipeline = ->
+  block = it    
 
 _module = ->
 
     iface = { 
         diagram: diagram
-        test-diag: test-diag
         box-element: box-element
         circle-element: circle-element 
         empty-element: empty-element
